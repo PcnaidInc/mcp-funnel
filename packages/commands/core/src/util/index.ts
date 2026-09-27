@@ -10,3 +10,9 @@ export { writeManifest } from './writeManifest.js';
 export { install } from './install.js';
 export { uninstall } from './uninstall.js';
 export { update } from './update.js';
+export {
+  isExactNpmVersion,
+  isNpmPackageName,
+  parseNpmPackageSpec,
+  type NpmPackageSpec,
+} from './npmPackageSpec.js';

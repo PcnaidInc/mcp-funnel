@@ -179,7 +179,7 @@ describe('Environment Security - Core Functionality', () => {
         AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
         AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
         GITHUB_TOKEN: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        STRIPE_SECRET_KEY: 'sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        STRIPE_SECRET_KEY: 'fixture-only-not-a-stripe-credential',
         DATABASE_PASSWORD: 'super-secret-password',
         JWT_SECRET: 'my-jwt-secret-key',
         API_KEY: 'api-key-12345',

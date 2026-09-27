@@ -41,7 +41,7 @@ describe('Basic StdioClientTransport Lifecycle', () => {
     expect(client).toBeDefined();
   });
 
-  it('should list tools from mcp-server-time', async () => {
+  it('should list tools from the checked-in time server', async () => {
     const resources: TransportTestResources = {};
 
     const transport = new StdioClientTransport({
@@ -141,7 +141,7 @@ describe('ReconnectablePrefixedStdioClientTransport Lifecycle', () => {
     expect(transport.connectionState).toBe('connected');
   });
 
-  it('should list tools from mcp-server-time', async () => {
+  it('should list tools from the checked-in time server', async () => {
     const resources: TransportTestResources = {};
 
     const transport = new ReconnectablePrefixedStdioClientTransport(TEST_SERVER_CONFIG.serverName, {

@@ -69,4 +69,10 @@ export type {
   InstallOptions,
   UninstallOptions,
 } from './types/index.js';
-export { readManifest } from './util/index.js';
+export {
+  readManifest,
+  isExactNpmVersion,
+  isNpmPackageName,
+  parseNpmPackageSpec,
+  type NpmPackageSpec,
+} from './util/index.js';

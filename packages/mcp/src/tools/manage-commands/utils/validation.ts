@@ -6,6 +6,7 @@
  */
 
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { isExactNpmVersion, parseNpmPackageSpec } from '@mcp-funnel/commands-core';
 
 /**
  * Result of a validation operation.
@@ -25,7 +26,10 @@ export interface ValidationResult {
  * @public
  */
 export function validatePackageParam(packageSpec: unknown): ValidationResult {
-  if (!packageSpec) {
+  try {
+    parseNpmPackageSpec(packageSpec);
+    return { valid: true };
+  } catch {
     return {
       valid: false,
       error: {
@@ -33,12 +37,26 @@ export function validatePackageParam(packageSpec: unknown): ValidationResult {
           {
             type: 'text',
             text: JSON.stringify({
-              error: 'Missing required parameter: package',
+              error: 'Package must be an unaliased npm registry name with an optional exact version',
             }),
           },
         ],
       },
     };
   }
-  return { valid: true };
+}
+
+export function validateVersionParam(version: unknown): ValidationResult {
+  if (version === undefined || isExactNpmVersion(version)) return { valid: true };
+  return {
+    valid: false,
+    error: {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ error: 'Version must be an exact semantic version' }),
+        },
+      ],
+    },
+  };
 }

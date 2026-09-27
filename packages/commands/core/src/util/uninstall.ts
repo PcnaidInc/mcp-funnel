@@ -1,12 +1,11 @@
 import { readManifest, type UninstallOptions } from '@mcp-funnel/commands-core';
 import type { CommandInstallerContext } from '../types/index.js';
-import { promisify } from 'util';
-import { exec } from 'child_process';
 import { writeManifest } from './writeManifest.js';
 import { join } from 'path';
 import * as fs from 'node:fs/promises';
 
-const execAsync = promisify(exec);
+import { isNpmPackageName } from './npmPackageSpec.js';
+import { runNpm } from './runNpm.js';
 
 /**
  * Uninstalls a command package from the isolated packages directory.
@@ -48,13 +47,12 @@ export async function uninstall(
   }
 
   const command = manifest.commands[commandIndex];
+  if (!isNpmPackageName(command.package)) throw new Error('Invalid package name in command manifest');
   console.info(`Uninstalling command: ${command.name} (${command.package})`);
 
   try {
     // Uninstall the package
-    await execAsync(`npm uninstall "${command.package}"`, {
-      cwd: context.packagesDir,
-    });
+    await runNpm(['uninstall', '--', command.package], context.packagesDir);
 
     // Remove from manifest
     manifest.commands.splice(commandIndex, 1);

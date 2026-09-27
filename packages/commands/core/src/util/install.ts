@@ -3,17 +3,14 @@ import { initialize } from './initialize.js';
 import { readManifest } from '@mcp-funnel/commands-core';
 import { findMatchingCommand } from './findMatchingCommand.js';
 import { readPackagesPackageJson } from './readPackagesPackageJson.js';
-import { extractPackageNameFromSpec } from './extractPackageNameFromSpec.js';
 import { resolveInstalledPackageName } from './resolveInstalledPackageName.js';
 import { getPackagePath } from './getPackagePath.js';
 import { loadCommand } from './loadCommand.js';
 import { join } from 'path';
 import { promises as fs } from 'fs';
 import { writeManifest } from './writeManifest.js';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-
-const execAsync = promisify(exec);
+import { isExactNpmVersion, isNpmPackageName, parseNpmPackageSpec } from './npmPackageSpec.js';
+import { runNpm } from './runNpm.js';
 
 /**
  * Installs a command package from npm registry to the isolated packages directory.
@@ -26,12 +23,10 @@ const execAsync = promisify(exec);
  * 5. Updates the manifest with installation metadata
  * 6. Rolls back on validation failure
  *
- * The function handles complex package resolution scenarios including:
- * - Version-suffixed specs (e.g., 'package\@1.0.0')
- * - Scoped packages (e.g., '\@org/package')
- * - Git URLs (e.g., 'git+https://github.com/org/repo.git')
+ * The function accepts npm registry package names, optionally with an exact
+ * semantic version. Aliases, URLs, local paths, tags and ranges are rejected.
  * @param context - Installer context containing directory paths and manifest location
- * @param packageSpec - npm package specifier (name, name\@version, git URL, or tarball URL)
+ * @param packageSpec - npm registry package name, optionally with an exact version
  * @param options - Installation options for force reinstall and version pinning
  * @returns Metadata about the installed command including name, version, and installation timestamp
  * @throws When package is already installed and force option is not set
@@ -60,10 +55,17 @@ export async function install(
   options: InstallOptions = {},
 ): Promise<InstalledCommand> {
   await initialize(context);
+  const parsedSpec = parseNpmPackageSpec(packageSpec);
+  if (options.version !== undefined && !isExactNpmVersion(options.version)) {
+    throw new Error('Version must be an exact semantic version');
+  }
+  if (options.version !== undefined && parsedSpec.version !== undefined) {
+    throw new Error('Specify a version either in package or version, not both');
+  }
 
   // Check if already installed
   const manifest = await readManifest(context.manifestPath);
-  const existing = findMatchingCommand(manifest, packageSpec);
+  const existing = findMatchingCommand(manifest, parsedSpec.name);
 
   if (existing && !options.force) {
     throw new Error(
@@ -72,18 +74,20 @@ export async function install(
   }
 
   const packagesJsonBefore = await readPackagesPackageJson(context.packagesDir);
-  const dependencyGuess = existing?.package || extractPackageNameFromSpec(packageSpec);
+  const dependencyGuess = existing?.package || parsedSpec.name;
+  if (!isNpmPackageName(dependencyGuess)) throw new Error('Invalid package name in command manifest');
 
   // Determine the install spec
-  const installSpec = options.version ? `${dependencyGuess}@${options.version}` : packageSpec;
+  const requestedVersion = options.version ?? parsedSpec.version;
+  const installSpec = requestedVersion
+    ? `${dependencyGuess}@${requestedVersion}`
+    : dependencyGuess;
 
   console.info(`Installing command package: ${installSpec}`);
 
   try {
     // Install the package using npm
-    const { stderr } = await execAsync(`npm install --save "${installSpec}"`, {
-      cwd: context.packagesDir,
-    });
+    const { stderr } = await runNpm(['install', '--save', '--', installSpec], context.packagesDir);
 
     if (stderr && !stderr.includes('npm WARN')) {
       console.warn('Installation warnings:', stderr);
@@ -98,6 +102,9 @@ export async function install(
       packagesJsonBefore,
       packagesJsonAfter,
     });
+    if (!isNpmPackageName(resolvedPackageName)) {
+      throw new Error('Installed package resolved to an invalid npm package name');
+    }
 
     // Load the installed command to get metadata
     const commandPath = getPackagePath(context.packagesDir, resolvedPackageName);
@@ -105,9 +112,7 @@ export async function install(
 
     if (!command) {
       // Rollback installation
-      await execAsync(`npm uninstall "${resolvedPackageName}"`, {
-        cwd: context.packagesDir,
-      });
+      await runNpm(['uninstall', '--', resolvedPackageName], context.packagesDir);
       throw new Error(
         `Package '${resolvedPackageName}' does not export a valid MCP Funnel command`,
       );

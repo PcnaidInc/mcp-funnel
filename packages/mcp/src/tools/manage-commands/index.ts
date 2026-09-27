@@ -2,7 +2,7 @@ import { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { BaseCoreTool } from '../base-core-tool.js';
 import { CoreToolContext } from '../core-tool.interface.js';
 import { CommandInstaller, readManifest, type InstalledCommand } from '@mcp-funnel/commands-core';
-import { validatePackageParam } from './utils/validation.js';
+import { validatePackageParam, validateVersionParam } from './utils/validation.js';
 import {
   formatAlreadyInstalledResponse,
   formatInstallResponse,
@@ -28,10 +28,12 @@ export class ManageCommands extends BaseCoreTool {
         },
         package: {
           type: 'string',
-          description: 'NPM package name or spec (e.g., @org/command, package@1.0.0)',
+          maxLength: 343,
+          description: 'NPM registry package name with optional exact version (e.g., @org/command, package@1.0.0)',
         },
         version: {
           type: 'string',
+          maxLength: 128,
           description: 'Specific version to install (optional, only for install action)',
         },
         force: {
@@ -69,6 +71,8 @@ export class ManageCommands extends BaseCoreTool {
     if (!validation.valid) {
       return validation.error!;
     }
+    const versionValidation = validateVersionParam(args.version);
+    if (!versionValidation.valid) return versionValidation.error!;
 
     try {
       switch (action) {

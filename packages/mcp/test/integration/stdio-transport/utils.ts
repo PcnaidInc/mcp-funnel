@@ -1,4 +1,5 @@
 import type { ChildProcess } from 'child_process';
+import { fileURLToPath } from 'url';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { ReconnectablePrefixedStdioClientTransport } from '../../../src/proxy/transports/reconnectable-transport.js';
 
@@ -139,11 +140,13 @@ export function simulateCrash(
 }
 
 /**
- * Standard test server configuration for mcp-server-time.
+ * Standard test server configuration using the checked-in MCP fixture.
  */
 export const TEST_SERVER_CONFIG = {
-  command: 'uvx',
-  args: ['mcp-server-time'] as string[],
+  command: 'tsx',
+  args: [
+    fileURLToPath(new URL('../../fixtures/mock-time-server.ts', import.meta.url)),
+  ] as string[],
   serverName: 'time-test',
 } as const;
 
