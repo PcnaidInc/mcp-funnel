@@ -32,7 +32,7 @@ describe('ManageCommands', () => {
       expect(response.error).toContain('Unknown action: unknown-action');
     });
 
-    it('should handle missing package parameter', async () => {
+    it('should reject a missing package parameter with registry-package guidance', async () => {
       const { tool, mockContext } = getContext();
 
       const result = await tool.handle(
@@ -46,7 +46,9 @@ describe('ManageCommands', () => {
       const content = result.content[0] as { type: string; text: string };
       const response = JSON.parse(content.text);
 
-      expect(response.error).toBe('Missing required parameter: package');
+      expect(response.error).toBe(
+        'Package must be an unaliased npm registry name with an optional exact version',
+      );
     });
 
     it('should handle installer initialization errors', async () => {

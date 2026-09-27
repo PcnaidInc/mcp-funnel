@@ -20,9 +20,10 @@ export interface ValidationResult {
 }
 
 /**
- * Validates that the package parameter is provided.
+ * Validates that the package parameter is an unaliased npm registry name with
+ * an optional exact semantic version.
  * @param packageSpec - Package specification to validate
- * @returns Validation result with error if package is missing
+ * @returns Validation result with an error if the package is missing or invalid
  * @public
  */
 export function validatePackageParam(packageSpec: unknown): ValidationResult {

@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { waitForServerReady } from './test-utils.js';
+import { spawnDevServer, waitForServerReady } from './test-utils.js';
 
 describe('Default Authentication with Environment Variables', () => {
   let serverProcess: ChildProcess | null = null;
@@ -151,15 +151,7 @@ describe('Default Authentication with Environment Variables', () => {
     const testToken = randomBytes(32).toString('hex');
 
     // Start server with explicit auth token
-    serverProcess = spawn('tsx', ['src/dev.ts'], {
-      cwd: '/Users/d635861/WorkBench/mcp-funnel/mcp-funnel-oauth/packages/server',
-      env: {
-        ...process.env,
-        MCP_FUNNEL_AUTH_TOKEN: testToken,
-        PORT: '0', // Use dynamic port
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    serverProcess = spawnDevServer({ type: 'bearer', token: testToken });
 
     testPort = await waitForServerReady(serverProcess);
 
@@ -180,16 +172,7 @@ describe('Default Authentication with Environment Variables', () => {
     let capturedOutput = '';
 
     // Start server without auth token
-    serverProcess = spawn('tsx', ['src/dev.ts'], {
-      cwd: '/Users/d635861/WorkBench/mcp-funnel/mcp-funnel-oauth/packages/server',
-      env: {
-        ...process.env,
-        PORT: '0', // Use dynamic port
-        // Explicitly unset MCP_FUNNEL_AUTH_TOKEN
-        MCP_FUNNEL_AUTH_TOKEN: undefined,
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    serverProcess = spawnDevServer({ type: 'generated' });
 
     // Capture output to find generated token
     serverProcess.stdout?.on('data', (data) => {
@@ -225,15 +208,7 @@ describe('Default Authentication with Environment Variables', () => {
     let capturedOutput = '';
 
     // Start server with auth disabled
-    serverProcess = spawn('tsx', ['src/dev.ts'], {
-      cwd: '/Users/d635861/WorkBench/mcp-funnel/mcp-funnel-oauth/packages/server',
-      env: {
-        ...process.env,
-        DISABLE_INBOUND_AUTH: 'true',
-        PORT: '0', // Use dynamic port
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    serverProcess = spawnDevServer({ type: 'none' });
 
     // Capture output to verify warnings
     serverProcess.stdout?.on('data', (data) => {
@@ -258,15 +233,7 @@ describe('Default Authentication with Environment Variables', () => {
     const shortToken = 'short'; // Less than 16 characters
 
     // Start server with short token - should fail
-    serverProcess = spawn('tsx', ['src/dev.ts'], {
-      cwd: '/Users/d635861/WorkBench/mcp-funnel/mcp-funnel-oauth/packages/server',
-      env: {
-        ...process.env,
-        MCP_FUNNEL_AUTH_TOKEN: shortToken,
-        PORT: '0',
-      },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    serverProcess = spawnDevServer({ type: 'bearer', token: shortToken });
 
     // Server should exit with error
     await new Promise<void>((resolve, reject) => {
