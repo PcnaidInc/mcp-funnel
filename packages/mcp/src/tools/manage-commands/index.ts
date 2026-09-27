@@ -1,7 +1,12 @@
 import { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { BaseCoreTool } from '../base-core-tool.js';
 import { CoreToolContext } from '../core-tool.interface.js';
-import { CommandInstaller, readManifest, type InstalledCommand } from '@mcp-funnel/commands-core';
+import {
+  CommandInstaller,
+  readManifest,
+  type InstalledCommand,
+  type NpmPackageSpec,
+} from '@mcp-funnel/commands-core';
 import { validatePackageParam, validateVersionParam } from './utils/validation.js';
 import {
   formatAlreadyInstalledResponse,
@@ -64,26 +69,27 @@ export class ManageCommands extends BaseCoreTool {
     context: CoreToolContext,
   ): Promise<CallToolResult> {
     const action = args.action as string;
-    const packageSpec = args.package as string;
 
     // Validate required parameters
-    const validation = validatePackageParam(packageSpec);
-    if (!validation.valid) {
-      return validation.error!;
+    const packageValidation = validatePackageParam(args.package);
+    if (!packageValidation.valid) {
+      return packageValidation.error;
     }
     const versionValidation = validateVersionParam(args.version);
-    if (!versionValidation.valid) return versionValidation.error!;
+    if (!versionValidation.valid) return versionValidation.error;
+
+    const packageSpec = packageValidation.value;
 
     try {
       switch (action) {
         case 'install':
-          return await this.handleInstall(args, packageSpec, context);
+          return await this.handleInstall(args, packageSpec, versionValidation.value, context);
 
         case 'uninstall':
-          return await this.handleUninstall(args, packageSpec);
+          return await this.handleUninstall(args, packageSpec.name);
 
         case 'update':
-          return await this.handleUpdate(packageSpec, context);
+          return await this.handleUpdate(packageSpec.name, context);
 
         default:
           return formatUnknownActionResponse(action);
@@ -95,15 +101,15 @@ export class ManageCommands extends BaseCoreTool {
 
   private async handleInstall(
     args: Record<string, unknown>,
-    packageSpec: string,
+    packageSpec: NpmPackageSpec,
+    version: string | undefined,
     context: CoreToolContext,
   ): Promise<CallToolResult> {
-    const version = args.version as string | undefined;
     const force = args.force as boolean | undefined;
 
     let installed;
     try {
-      installed = await this.installer.install(packageSpec, {
+      installed = await this.installer.install(packageSpec.installSpec, {
         force,
         version,
       });
@@ -111,7 +117,7 @@ export class ManageCommands extends BaseCoreTool {
       // Check if it's an "already installed" error
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('already installed')) {
-        return await this.handleAlreadyInstalled(packageSpec, context);
+        return await this.handleAlreadyInstalled(packageSpec.name, context);
       }
       throw error;
     }
@@ -133,13 +139,13 @@ export class ManageCommands extends BaseCoreTool {
   }
 
   private async handleAlreadyInstalled(
-    packageSpec: string,
+    packageName: string,
     context: CoreToolContext,
   ): Promise<CallToolResult> {
     // Get existing command info
     const manifest = await readManifest(this.installer.getManifestPath());
     const existing = manifest.commands.find(
-      (cmd: InstalledCommand) => cmd.package === packageSpec || cmd.name === packageSpec,
+      (cmd: InstalledCommand) => cmd.package === packageName || cmd.name === packageName,
     );
 
     if (!existing) {
@@ -165,20 +171,20 @@ export class ManageCommands extends BaseCoreTool {
 
   private async handleUninstall(
     args: Record<string, unknown>,
-    packageSpec: string,
+    packageName: string,
   ): Promise<CallToolResult> {
     const removeData = args.removeData as boolean | undefined;
 
-    await this.installer.uninstall(packageSpec, { removeData });
+    await this.installer.uninstall(packageName, { removeData });
 
-    return formatUninstallResponse(packageSpec);
+    return formatUninstallResponse(packageName);
   }
 
   private async handleUpdate(
-    packageSpec: string,
+    packageName: string,
     context: CoreToolContext,
   ): Promise<CallToolResult> {
-    const updated = await this.installer.update(packageSpec);
+    const updated = await this.installer.update(packageName);
 
     // Try to hot-reload the updated command
     const reloadResult = await hotReloadCommand(
