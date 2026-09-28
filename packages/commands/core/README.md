@@ -201,6 +201,16 @@ const command = registry.getCommandForCLI('my-command');
 
 - **`BaseCommand`**: Abstract base class with common functionality
 - **`CommandRegistry`**: Registry for managing commands
+- **`CommandInstaller`**: Installs exact npm package specifications and manages installed packages
+
+`CommandInstaller.install()` accepts an unaliased registry package name and, optionally, one exact
+semantic version. The `manage_commands` MCP boundary parses that specification once: installation
+retains the requested version, while update, uninstall, and already-installed lookups use the
+version-free package identity. Optional standalone versions sent as JSON `null` are treated as
+omitted before calling the installer.
+
+npm subprocesses receive an argument array. Windows installations are resolved from
+`npm_execpath` or `PATH`, including npm's standard wrapper-relative `npm-cli.js` layout.
 
 ### Functions
 

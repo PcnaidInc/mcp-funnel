@@ -1,5 +1,43 @@
 import type { Context } from 'hono';
-import type { ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+/** Authentication modes exercised by the development-server process tests. */
+export type DevServerAuthConfig =
+  | { type: 'bearer'; token: string }
+  | { type: 'generated' }
+  | { type: 'none' };
+
+const serverPackageDirectory = fileURLToPath(new URL('../../', import.meta.url));
+
+/**
+ * Starts the development server with an isolated authentication environment.
+ *
+ * Removing both authentication variables before applying the requested mode keeps
+ * developer or CI environment values from changing the behavior under test.
+ * @param authConfig - Authentication mode for the development server
+ * @returns Spawned development server process
+ */
+export const spawnDevServer = (authConfig: DevServerAuthConfig): ChildProcess => {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PORT: '0',
+  };
+  delete env.MCP_FUNNEL_AUTH_TOKEN;
+  delete env.DISABLE_INBOUND_AUTH;
+
+  if (authConfig.type === 'bearer') {
+    env.MCP_FUNNEL_AUTH_TOKEN = authConfig.token;
+  } else if (authConfig.type === 'none') {
+    env.DISABLE_INBOUND_AUTH = 'true';
+  }
+
+  return spawn('tsx', ['src/dev.ts'], {
+    cwd: serverPackageDirectory,
+    env,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+};
 
 /**
  * Helper function to create a mock Hono context for tests

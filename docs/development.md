@@ -67,6 +67,20 @@ MCP_FUNNEL_LOG=1 MCP_FUNNEL_LOG_LEVEL=debug yarn dev
 2. **Permission errors**: Ensure proper file system permissions for server executables
 3. **Port conflicts**: Make sure the MCP Funnel port (default: 3100) is available
 
+## Dynamic Command Management
+
+The `manage_commands` tool accepts unaliased npm registry package names with an optional exact
+semantic version. Validation returns the parsed package identity so lifecycle operations use the
+same normalization rules:
+
+- `install` retains the full package specification, including an embedded exact version.
+- `update` and `uninstall` use the version-free package name for manifest lookup.
+- A missing or JSON `null` standalone `version` is treated as omitted.
+
+npm is invoked with an executable and argument array rather than a command string. On Windows, the
+runner uses an npm CLI configured in `npm_execpath` when available, otherwise it resolves npm from
+`PATH`; script wrappers are mapped to their installation-relative `npm-cli.js`.
+
 ## 💻 Code Standards
 
 ### TypeScript

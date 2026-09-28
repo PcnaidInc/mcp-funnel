@@ -1,12 +1,11 @@
 import { type InstalledCommand, readManifest } from '@mcp-funnel/commands-core';
 import type { CommandInstallerContext } from '../types/index.js';
-import { promisify } from 'util';
-import { exec } from 'child_process';
 import { join } from 'path';
 import * as fs from 'node:fs/promises';
 import { writeManifest } from './writeManifest.js';
 
-const execAsync = promisify(exec);
+import { isNpmPackageName } from './npmPackageSpec.js';
+import { runNpm } from './runNpm.js';
 
 /**
  * Updates an installed command package to its latest version.
@@ -50,14 +49,13 @@ export async function update(
   if (!command) {
     throw new Error(`Command '${packageNameOrCommandName}' is not installed`);
   }
+  if (!isNpmPackageName(command.package)) throw new Error('Invalid package name in command manifest');
 
   console.info(`Updating command: ${command.name} (${command.package})`);
 
   try {
     // Update using npm
-    await execAsync(`npm update "${command.package}"`, {
-      cwd: context.packagesDir,
-    });
+    await runNpm(['update', '--', command.package], context.packagesDir);
 
     // Get new version
     const commandPath = join(context.packagesDir, 'node_modules', command.package);

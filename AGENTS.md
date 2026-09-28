@@ -66,6 +66,15 @@ Transport from MCP SDK     // Add WebSocket alongside SSE
 
 The Rule: Abstract where variation is inevitable, implement only what's immediate.
 
+## Dynamic command lifecycle invariants
+
+- Parse a `manage_commands` package specification once. Preserve the full specification for
+  installation, and use its version-free name for manifest identity lookups.
+- Normalize an omitted or JSON `null` optional version to `undefined` before calling the command
+  installer.
+- Keep npm subprocess execution shell-free and argument-based. On Windows, resolve the configured
+  npm CLI or its `PATH` wrapper instead of deriving npm's location from `process.execPath`.
+
 ## Additional Info
 - Repository URL is: https://github.com/chris-schra/mcp-funnel
 

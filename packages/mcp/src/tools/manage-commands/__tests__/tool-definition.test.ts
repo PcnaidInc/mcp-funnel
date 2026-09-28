@@ -32,7 +32,9 @@ describe('ManageCommands', () => {
 
       expect(properties.package).toBeDefined();
       expect(properties.package.type).toBe('string');
-      expect(properties.package.description).toContain('NPM package name');
+      expect(properties.package.description).toBe(
+        'NPM registry package name with optional exact version (e.g., @org/command, package@1.0.0)',
+      );
 
       expect(properties.version).toBeDefined();
       expect(properties.version.description).toContain('Specific version to install');
