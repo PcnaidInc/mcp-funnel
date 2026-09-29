@@ -4,9 +4,9 @@
 # nothing. So one file is safe everywhere, including repos created later.
 #
 # POLICY, and the reasoning, so nobody re-derives it:
-#  - MAJOR version updates are IGNORED. A major is a breaking change by definition and needs a human
-#    decision, not a bot PR that sits red forever. Security advisories are unaffected — Dependabot
-#    security updates ignore this file's `ignore` rules and still open, which is the behaviour we want.
+#  - MAJOR version updates are GROUPED into their own PR per ecosystem, never ignored. A major is a
+#    breaking change and needs a human decision, but an `ignore` entry would also suppress the
+#    matching security update, so the major stays visible in one separate, reviewable PR instead.
 #  - minor + patch are GROUPED into one PR per ecosystem. 12 separate bumps became 1 review.
 #  - weekly, not daily: daily produces more PRs than anyone closes.
 #  - open-pull-requests-limit is deliberately low. The bottleneck is review, not proposal rate.
@@ -22,12 +22,11 @@ updates:
     groups:
       actions-minor-patch:
         update-types: ["minor", "patch"]
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      actions-major:
+        update-types: ["major"]
 
   - package-ecosystem: "npm"
-    directories: ["/", "/web", "/app", "/apps/*", "/packages/*", "/frontend", "/backend"]
+    directories: ["/", "/web", "/app", "/apps/*", "/packages/**", "/frontend", "/backend"]
     schedule: { interval: "weekly", day: "monday" }
     open-pull-requests-limit: 5
     labels: ["dependencies", "npm", "automerge-candidate"]
@@ -39,9 +38,8 @@ updates:
       npm-production:
         dependency-type: "production"
         update-types: ["minor", "patch"]
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      npm-major:
+        update-types: ["major"]
 
   - package-ecosystem: "pip"
     directories: ["/", "/backend", "/api", "/src"]
@@ -52,9 +50,8 @@ updates:
     groups:
       pip-minor-patch:
         update-types: ["minor", "patch"]
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      pip-major:
+        update-types: ["major"]
 
   - package-ecosystem: "docker"
     directories: ["/", "/docker", "/backend", "/web"]
@@ -62,11 +59,12 @@ updates:
     open-pull-requests-limit: 2
     labels: ["dependencies", "docker"]
     commit-message: { prefix: "build" }
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
 
   # iOS/macOS apps. No-op in every other repo.
+    groups:
+      docker-major:
+        update-types: ["major"]
+
   - package-ecosystem: "swift"
     directory: "/"
     schedule: { interval: "weekly", day: "monday" }
@@ -76,9 +74,8 @@ updates:
     groups:
       swift-minor-patch:
         update-types: ["minor", "patch"]
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      swift-major:
+        update-types: ["major"]
 
   - package-ecosystem: "gradle"
     directory: "/"
@@ -86,6 +83,6 @@ updates:
     open-pull-requests-limit: 2
     labels: ["dependencies", "android"]
     commit-message: { prefix: "deps" }
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    groups:
+      gradle-major:
+        update-types: ["major"]
